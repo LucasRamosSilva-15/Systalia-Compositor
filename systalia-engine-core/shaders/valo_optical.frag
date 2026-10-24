@@ -30,7 +30,7 @@ float selectRadius(vec2 p, vec4 r) {
     }
 }
 
-// SDF Squircle G2 de 4ª ordem
+// SDF Squircle G2 de 4ª ordem (superelipse contínua sem quebras de curvatura)
 float sdRoundedBox4(vec2 p, vec2 b, vec4 r) {
     float rad = selectRadius(p, r);
     rad = clamp(rad, 0.0, min(b.x, b.y) - 0.5);
@@ -98,11 +98,11 @@ void main() {
         discard;
     }
 
-    // 2. Normais Analíticas e Menisco de Borda (14px para efeito lente visível sem Rubber Ring)
+    // 2. Normais Analíticas e Menisco de Borda (7.0px para efeito de lente visível sem Rubber Ring)
     vec2 norm = calculateNormal(p, halfSize, u_Radii, u_Slant);
     float distFromEdge = max(-dist, 0.0);
 
-    const float MENISCUS_WIDTH = 14.0;
+    const float MENISCUS_WIDTH = 7.0;
     float edgeFactor = clamp(1.0 - (distFromEdge / MENISCUS_WIDTH), 0.0, 1.0);
     float meniscusCurve = pow(edgeFactor, 2.0);
 
@@ -127,23 +127,23 @@ void main() {
 
     // 6. Substrato Abissal VALO Glass
     vec3 glassBase = mix(vec3(0.035, 0.095, 0.175), vec3(0.055, 0.145, 0.255), v_TexCoord.y);
-    vec3 composite = mix(refractedBackdrop, glassBase, clamp(u_Opacity, 0.05, 0.90));
+    vec3 finalColor = mix(refractedBackdrop, glassBase, clamp(u_Opacity, 0.05, 0.90));
 
     // 7. Feixe Cáustico Planar a 45° com Decomposição Espectral Suave
     float diag = (v_TexCoord.x * 0.7071 + (1.0 - v_TexCoord.y) * 0.7071);
     float beam = exp(-pow((diag - 0.65) / 0.20, 2.0)) * u_CausticIntensity;
     vec3 causticSpectral = mix(vec3(0.0, 0.898, 1.0), vec3(0.85, 0.96, 1.0), smoothstep(0.45, 0.85, diag));
-    composite += causticSpectral * beam * 0.28;
+    finalColor += causticSpectral * beam * 0.28;
 
-    // 8. Specular Rim Light Zenital Fino (1.2px no topo e quinas superiores)
+    // 8. Specular Rim Light Zenital Fino (1.1px no topo e quinas superiores)
     float zenith = clamp(-norm.y * 0.85 + 0.15, 0.0, 1.0);
-    float rimMask = exp(-pow((distFromEdge - 0.8) / 0.65, 2.0));
+    float rimMask = exp(-pow((distFromEdge - 1.1) / 0.65, 2.0));
     float specularRim = rimMask * zenith * 0.90;
-    composite += mix(vec3(1.0), vec3(0.0, 0.898, 1.0), 0.25) * specularRim;
+    finalColor += mix(vec3(1.0), vec3(0.0, 0.898, 1.0), 0.25) * specularRim;
 
     // Oclusão de contato sutil na borda inferior
     float bottomOcc = clamp(norm.y, 0.0, 1.0) * rimMask * 0.25;
-    composite -= vec3(bottomOcc);
+    finalColor -= vec3(bottomOcc);
 
-    fragColor = vec4(clamp(composite, vec3(0.0), vec3(1.0)), alphaMask);
+    fragColor = vec4(clamp(finalColor, vec3(0.0), vec3(1.0)), alphaMask * u_Opacity);
 }

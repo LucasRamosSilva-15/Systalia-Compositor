@@ -65,3 +65,6 @@ qt_add_qml_module(systalia_engine_core
         src/qml/main.qml
     NO_PLUGIN
 )
+
+enable_testing()
+add_subdirectory(tests)
