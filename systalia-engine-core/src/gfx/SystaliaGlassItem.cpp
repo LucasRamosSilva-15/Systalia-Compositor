@@ -6,9 +6,12 @@
 #include <QImage>
 
 SystaliaGlassItem::SystaliaGlassItem(QQuickItem *parent)
+{
+    fprintf(stderr, "[SGE-INFO] SystaliaGlassItem CONSTRUCTOR CALLED!\n");
     : QQuickItem(parent)
 {
     setFlag(ItemHasContents, true);
+qDebug() << "[SGE-DEBUG] SystaliaGlassItem constructor! this=" << this;
 }
 
 SystaliaGlassItem::~SystaliaGlassItem()
@@ -115,6 +118,7 @@ QSGNode *SystaliaGlassItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDat
 {
     Q_UNUSED(data);
     auto *node = static_cast<QSGGeometryNode *>(oldNode);
+qDebug() << "[SGE-DEBUG] updatePaintNode! width:" << width() << "height:" << height();
 
     if (width() <= 0 || height() <= 0) {
         delete node;
@@ -139,6 +143,7 @@ QSGNode *SystaliaGlassItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDat
                                             QRectF(0, 0, 1, 1));
     node->markDirty(QSGNode::DirtyGeometry);
 
+    fprintf(stderr, "[SGE-INFO] updatePaintNode CALLED! w=%f, h=%f, tex=%p\n", width(), height(), tex);
     auto *material = static_cast<SystaliaGlassMaterial *>(node->material());
 
     // Configuração dos uniforms std140 (128 bytes)
@@ -146,17 +151,16 @@ QSGNode *SystaliaGlassItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDat
     props.radii = m_radii;
     props.windowSize = QVector2D(static_cast<float>(width()), static_cast<float>(height()));
 
-    // Resolução de ecrã para Screen-Space normalizado com suporte a High-DPI
-    QVector2D res = m_screenResolution;
-    if (res.x() <= 0.0f || res.y() <= 0.0f) {
-        if (window()) {
-            res = QVector2D(window()->width(), window()->height());
-        } else {
-            res = props.windowSize;
-        }
+    // Correção estrita de DPI / Wayland: Resolução do ecrã em pixels físicos da GPU
+    if (window()) {
+        const float dpr = static_cast<float>(window()->devicePixelRatio());
+        props.screenResolution = QVector2D(static_cast<float>(window()->width()) * dpr,
+                                           static_cast<float>(window()->height()) * dpr);
+    } else if (m_screenResolution.x() > 0.0f && m_screenResolution.y() > 0.0f) {
+        props.screenResolution = m_screenResolution;
+    } else {
+        props.screenResolution = props.windowSize;
     }
-    const float dpr = window() ? static_cast<float>(window()->devicePixelRatio()) : 1.0f;
-    props.screenResolution = QVector2D(res.x() * dpr, res.y() * dpr);
 
     props.slant = m_slant;
     props.ior = m_ior;
@@ -188,6 +192,12 @@ QSGNode *SystaliaGlassItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDat
 
     if (!tex) {
         tex = ensureFallbackTexture();
+    }
+
+    if (tex) {
+        tex->setFiltering(QSGTexture::Linear);
+        tex->setHorizontalWrapMode(QSGTexture::ClampToEdge);
+        tex->setVerticalWrapMode(QSGTexture::ClampToEdge);
     }
 
     material->setTexture(tex);

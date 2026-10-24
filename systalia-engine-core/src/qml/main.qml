@@ -123,7 +123,7 @@ ApplicationWindow {
                 opacity: 0.9
             }
 
-            // Padrão xadrez de alta frequência para evidenciar refração analítica
+            // Padrão xadrez de alta frequência para teste de refração
             Grid {
                 x: 350
                 y: 180
@@ -163,7 +163,7 @@ ApplicationWindow {
         }
     }
 
-    // Timer para animação fluida do fundo (60 FPS)
+    // Timer para animação contínua (60 FPS)
     Timer {
         id: animTimer
         interval: 16
@@ -186,494 +186,450 @@ ApplicationWindow {
         live: true
         hideSource: false
         recursive: false
+        format: ShaderEffectSource.RGBA8
     }
 
     // =========================================================================
-    // 3. JANELA INTERATIVA VALO GLASS COM MOTOR ÓPTICO SDF
+    // 3. CHASSIS UNIFICADO DE CRISTAL LÍQUIDO VALO GLASS
+    // O próprio SystaliaGlassItem é o container centralizado da janela (uma única placa)
     // =========================================================================
-    Item {
-        id: glassWindow
-        width: 820
+    SystaliaGlassItem {
+        id: glassChassis
+        width: 860
         height: 580
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
+        anchors.centerIn: parent
 
-        // 3.1 SUPERFÍCIE ÓPTICA SGE (C++ QQuickItem / Vulkan RHI)
-        SystaliaGlassItem {
-            id: opticalSurface
-            anchors.fill: parent
-            backdropSource: backdropGrab
-            screenResolution: Qt.vector2d(rootWindow.width, rootWindow.height)
+        backdropSource: backdropGrab
+        screenResolution: Qt.vector2d(rootWindow.width * rootWindow.devicePixelRatio,
+                                      rootWindow.height * rootWindow.devicePixelRatio)
 
-            // Propriedades std140 sincronizadas com controlos
-            radii: Qt.vector4d(sliderRTL.value, sliderRTR.value, sliderRBL.value, sliderRBR.value)
-            slant: sliderSlant.value
-            ior: sliderIOR.value
-            chromaticDispersion: sliderDispersion.value
-            causticIntensity: sliderCaustic.value
-            surfaceOpacity: sliderOpacity.value
+        // Sincronização dos parâmetros ópticos e de geometria G2
+        radii: Qt.vector4d(sliderRTL.value, sliderRTR.value, sliderRBL.value, sliderRBR.value)
+        slant: sliderSlant.value
+        ior: sliderIOR.value
+        chromaticDispersion: sliderDispersion.value
+        causticIntensity: sliderCaustic.value
+        surfaceOpacity: sliderOpacity.value
+
+        // Arraste livre da janela pelo utilizador
+        DragHandler {
+            id: windowDrag
+            target: glassChassis
         }
 
-        // 3.2 CAMADA DE CONTEÚDO E CONTROLOS DA JANELA
-        Item {
+        // =====================================================================
+        // 4. CAMADA DE CONTEÚDO INTEGRADA E 100% TRANSPARENTE
+        // (Sem sub-retângulos escuros: todo o conteúdo repousa sobre a mesma placa de vidro)
+        // =====================================================================
+        ColumnLayout {
             anchors.fill: parent
-            clip: false
+            anchors.margins: 14
+            spacing: 8
 
-            // Barra de Título (Titlebar) com suporte a Drag da Janela
-            Rectangle {
-                id: titleBar
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 48
-                color: "transparent"
-
-                DragHandler {
-                    id: windowDrag
-                    target: glassWindow
-                }
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 18
-                    anchors.rightMargin: 18
-                    spacing: 12
-
-                    // Ícone do Systalia Glass Engine
-                    Rectangle {
-                        width: 24
-                        height: 24
-                        radius: 6
-                        gradient: Gradient {
-                            GradientStop { position: 0.0; color: "#00e5ff" }
-                            GradientStop { position: 1.0; color: "#00ffa3" }
-                        }
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "S"
-                            color: "#050b14"
-                            font.bold: true
-                            font.pixelSize: 13
-                        }
-                    }
-
-                    // Título e Status
-                    ColumnLayout {
-                        spacing: 1
-                        Text {
-                            text: "SYSTALIA GLASS ENGINE — VALO OPTICAL SDF"
-                            color: "#f8fafc"
-                            font.bold: true
-                            font.pixelSize: 12
-                            font.family: "Segoe UI, Inter, sans-serif"
-                        }
-                        Text {
-                            text: "Fase 1: Motor Óptico Analítico • Vulkan RHI Native • Screen-Space UV"
-                            color: "#00e5ff"
-                            font.pixelSize: 10
-                            font.family: "JetBrains Mono, monospace"
-                        }
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    // Badges de Telemetria Ativa
-                    Rectangle {
-                        height: 22
-                        width: 80
-                        radius: 4
-                        color: "#2600e5ff"
-                        border.color: "#6600e5ff"
-                        border.width: 1
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "VK RHI NATIVE"
-                            color: "#00e5ff"
-                            font.pixelSize: 9
-                            font.bold: true
-                            font.family: "JetBrains Mono, monospace"
-                        }
-                    }
-
-                    Rectangle {
-                        height: 22
-                        width: 65
-                        radius: 4
-                        color: "#2600ffa3"
-                        border.color: "#6600ffa3"
-                        border.width: 1
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "SDF G2"
-                            color: "#00ffa3"
-                            font.pixelSize: 9
-                            font.bold: true
-                            font.family: "JetBrains Mono, monospace"
-                        }
-                    }
-
-                    // Controles de Janela (Botões estilo Systalia)
-                    Row {
-                        spacing: 8
-                        Rectangle {
-                            width: 13
-                            height: 13
-                            radius: 6.5
-                            color: "#22c55e"
-                            border.color: "#4dffffff"
-                        }
-                        Rectangle {
-                            width: 13
-                            height: 13
-                            radius: 6.5
-                            color: "#eab308"
-                            border.color: "#4dffffff"
-                        }
-                        Rectangle {
-                            width: 13
-                            height: 13
-                            radius: 6.5
-                            color: "#ef4444"
-                            border.color: "#4dffffff"
-                        }
-                    }
-                }
-            }
-
-            // Separador sutil
-            Rectangle {
-                anchors.top: titleBar.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                height: 1
-                color: "#1affffff"
-            }
-
-            // Painel Principal de Controlo e Telemetria
+            // 4.1 Barra de Título Unificada
             RowLayout {
-                anchors.top: titleBar.bottom
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.margins: 18
-                spacing: 20
+                Layout.fillWidth: true
+                Layout.preferredHeight: 38
+                spacing: 12
 
-                // COLUNA ESQUERDA: Sliders dos 4 Raios Analíticos e Presets
+                // Ícone Óptico Systalia
                 Rectangle {
-                    Layout.fillHeight: true
-                    Layout.preferredWidth: 380
-                    color: "#8c08101c"
-                    radius: 12
-                    border.color: "#4000e5ff"
-                    border.width: 1
+                    width: 26
+                    height: 26
+                    radius: 7
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: "#00e5ff" }
+                        GradientStop { position: 1.0; color: "#00ffa3" }
+                    }
 
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 14
-                        spacing: 10
-
-                        Text {
-                            text: "CONTROLO DE CURVATURA SDF (G2 SQUIRCLE)"
-                            color: "#00e5ff"
-                            font.bold: true
-                            font.pixelSize: 11
-                            font.family: "JetBrains Mono, monospace"
-                        }
-
-                        // Presets Rápidos
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 6
-
-                            Button {
-                                Layout.fillWidth: true
-                                text: "Simétrico 24"
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "#f8fafc"
-                                    font.pixelSize: 10
-                                    horizontalAlignment: Text.AlignHCenter
-                                }
-                                background: Rectangle {
-                                    color: parent.hovered ? "#4d00e5ff" : "#1f00e5ff"
-                                    radius: 5
-                                    border.color: "#6600e5ff"
-                                }
-                                onClicked: {
-                                    sliderRTL.value = 24;
-                                    sliderRTR.value = 24;
-                                    sliderRBL.value = 24;
-                                    sliderRBR.value = 24;
-                                    sliderSlant.value = 0.0;
-                                }
-                            }
-
-                            Button {
-                                Layout.fillWidth: true
-                                text: "Domo 48"
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "#f8fafc"
-                                    font.pixelSize: 10
-                                    horizontalAlignment: Text.AlignHCenter
-                                }
-                                background: Rectangle {
-                                    color: parent.hovered ? "#4d00ffa3" : "#1f00ffa3"
-                                    radius: 5
-                                    border.color: "#6600ffa3"
-                                }
-                                onClicked: {
-                                    sliderRTL.value = 48;
-                                    sliderRTR.value = 48;
-                                    sliderRBL.value = 12;
-                                    sliderRBR.value = 12;
-                                    sliderSlant.value = 0.35;
-                                }
-                            }
-
-                            Button {
-                                Layout.fillWidth: true
-                                text: "Assimétrico"
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "#f8fafc"
-                                    font.pixelSize: 10
-                                    horizontalAlignment: Text.AlignHCenter
-                                }
-                                background: Rectangle {
-                                    color: parent.hovered ? "#4dff007a" : "#1fff007a"
-                                    radius: 5
-                                    border.color: "#66ff007a"
-                                }
-                                onClicked: {
-                                    sliderRTL.value = 40;
-                                    sliderRTR.value = 6;
-                                    sliderRBL.value = 8;
-                                    sliderRBR.value = 40;
-                                }
-                            }
-                        }
-
-                        // Slider Top-Left
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Text { text: "Raio Sup. Esq. (r_tl):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 150 }
-                            Slider {
-                                id: sliderRTL
-                                Layout.fillWidth: true
-                                from: 0.0
-                                to: 64.0
-                                value: 24.0
-                            }
-                            Text { text: Math.round(sliderRTL.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 38 }
-                        }
-
-                        // Slider Top-Right
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Text { text: "Raio Sup. Dir. (r_tr):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 150 }
-                            Slider {
-                                id: sliderRTR
-                                Layout.fillWidth: true
-                                from: 0.0
-                                to: 64.0
-                                value: 24.0
-                            }
-                            Text { text: Math.round(sliderRTR.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 38 }
-                        }
-
-                        // Slider Bottom-Left
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Text { text: "Raio Inf. Esq. (r_bl):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 150 }
-                            Slider {
-                                id: sliderRBL
-                                Layout.fillWidth: true
-                                from: 0.0
-                                to: 64.0
-                                value: 24.0
-                            }
-                            Text { text: Math.round(sliderRBL.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 38 }
-                        }
-
-                        // Slider Bottom-Right
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Text { text: "Raio Inf. Dir. (r_br):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 150 }
-                            Slider {
-                                id: sliderRBR
-                                Layout.fillWidth: true
-                                from: 0.0
-                                to: 64.0
-                                value: 24.0
-                            }
-                            Text { text: Math.round(sliderRBR.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 38 }
-                        }
-
-                        // Slider Slant / Trapézio
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Text { text: "Inclinação (Slant/Domo):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 150 }
-                            Slider {
-                                id: sliderSlant
-                                Layout.fillWidth: true
-                                from: -0.8
-                                to: 0.8
-                                value: 0.0
-                            }
-                            Text { text: sliderSlant.value.toFixed(2); color: "#00ffa3"; font.pixelSize: 11; Layout.preferredWidth: 38 }
-                        }
-
-                        Item { Layout.fillHeight: true }
-
-                        // Aviso de conformidade
-                        Text {
-                            text: "✓ Recorte analítico G2 sem QRegion nem blur bleed."
-                            color: "#94a3b8"
-                            font.pixelSize: 10
-                            font.italic: true
-                        }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "S"
+                        color: "#050b14"
+                        font.bold: true
+                        font.pixelSize: 13
                     }
                 }
 
-                // COLUNA DIREITA: Simulação Óptica (IOR, Dispersão, Cáustica, Opacidade)
+                // Títulos do Chassi
+                ColumnLayout {
+                    spacing: 1
+                    Text {
+                        text: "SYSTALIA GLASS ENGINE — VALO OPTICAL SDF"
+                        color: "#f8fafc"
+                        font.bold: true
+                        font.pixelSize: 12
+                        font.family: "Segoe UI, Inter, sans-serif"
+                    }
+                    Text {
+                        text: "Placa Única de Cristal Óptico G2 • Vulkan RHI Native • Screen-Space UV"
+                        color: "#00e5ff"
+                        font.pixelSize: 10
+                        font.family: "JetBrains Mono, monospace"
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
+
+                // Badges de Telemetria
                 Rectangle {
-                    Layout.fillHeight: true
-                    Layout.fillWidth: true
-                    color: "#8c08101c"
-                    radius: 12
-                    border.color: "#4000ffa3"
+                    height: 20
+                    width: 82
+                    radius: 4
+                    color: "#2000e5ff"
+                    border.color: "#5000e5ff"
                     border.width: 1
 
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 14
-                        spacing: 12
+                    Text {
+                        anchors.centerIn: parent
+                        text: "VK RHI NATIVE"
+                        color: "#00e5ff"
+                        font.pixelSize: 9
+                        font.bold: true
+                        font.family: "JetBrains Mono, monospace"
+                    }
+                }
 
-                        Text {
-                            text: "PARÂMETROS ÓPTICOS VALO GLASS"
-                            color: "#00ffa3"
-                            font.bold: true
-                            font.pixelSize: 11
-                            font.family: "JetBrains Mono, monospace"
-                        }
+                Rectangle {
+                    height: 20
+                    width: 60
+                    radius: 4
+                    color: "#2000ffa3"
+                    border.color: "#5000ffa3"
+                    border.width: 1
 
-                        // Slider IOR (Índice de Refração)
-                        RowLayout {
+                    Text {
+                        anchors.centerIn: parent
+                        text: "SDF G2"
+                        color: "#00ffa3"
+                        font.pixelSize: 9
+                        font.bold: true
+                        font.family: "JetBrains Mono, monospace"
+                    }
+                }
+
+                // Botões de Janela
+                Row {
+                    spacing: 8
+                    Rectangle { width: 12; height: 12; radius: 6; color: "#22c55e"; border.color: "#40ffffff" }
+                    Rectangle { width: 12; height: 12; radius: 6; color: "#eab308"; border.color: "#40ffffff" }
+                    Rectangle { width: 12; height: 12; radius: 6; color: "#ef4444"; border.color: "#40ffffff" }
+                }
+            }
+
+            // Separador de vidro ultra-sutil
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: "#18ffffff"
+            }
+
+            // 4.2 Deck Principal de Controlos (Layout Transparente em 2 Colunas)
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 16
+
+                // COLUNA 1: GEOMETRIA E CURVATURA SDF G2
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: 8
+
+                    Text {
+                        text: "◈ GEOMETRIA & CURVATURA SDF G2"
+                        color: "#00e5ff"
+                        font.bold: true
+                        font.pixelSize: 11
+                        font.family: "JetBrains Mono, monospace"
+                    }
+
+                    // Botões de Presets
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Button {
                             Layout.fillWidth: true
-                            Text { text: "Índice Refração (IOR):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 160 }
-                            Slider {
-                                id: sliderIOR
-                                Layout.fillWidth: true
-                                from: 1.00
-                                to: 1.45
-                                value: 1.15
+                            text: "Simétrico 24"
+                            contentItem: Text {
+                                text: parent.text
+                                color: "#f8fafc"
+                                font.pixelSize: 10
+                                horizontalAlignment: Text.AlignHCenter
                             }
-                            Text { text: sliderIOR.value.toFixed(2); color: "#00ffa3"; font.pixelSize: 11; Layout.preferredWidth: 38 }
-                        }
-
-                        // Slider Dispersão Cromática (Cauchy)
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Text { text: "Dispersão Cromática:"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 160 }
-                            Slider {
-                                id: sliderDispersion
-                                Layout.fillWidth: true
-                                from: 0.000
-                                to: 0.080
-                                value: 0.035
+                            background: Rectangle {
+                                color: parent.hovered ? "#4000e5ff" : "#1400e5ff"
+                                radius: 5
+                                border.color: "#4000e5ff"
                             }
-                            Text { text: sliderDispersion.value.toFixed(3); color: "#ff007a"; font.pixelSize: 11; Layout.preferredWidth: 38 }
-                        }
-
-                        // Slider Intensidade Cáustica 45°
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Text { text: "Feixe Cáustico a 45°:"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 160 }
-                            Slider {
-                                id: sliderCaustic
-                                Layout.fillWidth: true
-                                from: 0.00
-                                to: 1.50
-                                value: 0.65
+                            onClicked: {
+                                sliderRTL.value = 24;
+                                sliderRTR.value = 24;
+                                sliderRBL.value = 24;
+                                sliderRBR.value = 24;
+                                sliderSlant.value = 0.0;
                             }
-                            Text { text: sliderCaustic.value.toFixed(2); color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 38 }
                         }
 
-                        // Slider Opacidade
-                        RowLayout {
+                        Button {
                             Layout.fillWidth: true
-                            Text { text: "Opacidade do Vidro:"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 160 }
-                            Slider {
-                                id: sliderOpacity
-                                Layout.fillWidth: true
-                                from: 0.00
-                                to: 1.00
-                                value: 0.50
+                            text: "Domo 48"
+                            contentItem: Text {
+                                text: parent.text
+                                color: "#f8fafc"
+                                font.pixelSize: 10
+                                horizontalAlignment: Text.AlignHCenter
                             }
-                            Text { text: Math.round(sliderOpacity.value * 100) + "%"; color: "#f8fafc"; font.pixelSize: 11; Layout.preferredWidth: 38 }
+                            background: Rectangle {
+                                color: parent.hovered ? "#4000ffa3" : "#1400ffa3"
+                                radius: 5
+                                border.color: "#4000ffa3"
+                            }
+                            onClicked: {
+                                sliderRTL.value = 48;
+                                sliderRTR.value = 48;
+                                sliderRBL.value = 12;
+                                sliderRBR.value = 12;
+                                sliderSlant.value = 0.35;
+                            }
                         }
 
-                        // Painel de Telemetria Óptica em tempo real
-                        Rectangle {
+                        Button {
                             Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            color: "#99030712"
-                            radius: 8
-                            border.color: "#14ffffff"
+                            text: "Assimétrico"
+                            contentItem: Text {
+                                text: parent.text
+                                color: "#f8fafc"
+                                font.pixelSize: 10
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+                            background: Rectangle {
+                                color: parent.hovered ? "#40ff007a" : "#14ff007a"
+                                radius: 5
+                                border.color: "#40ff007a"
+                            }
+                            onClicked: {
+                                sliderRTL.value = 42;
+                                sliderRTR.value = 8;
+                                sliderRBL.value = 8;
+                                sliderRBR.value = 42;
+                            }
+                        }
+                    }
 
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 10
-                                spacing: 4
+                    // Slider Top-Left
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Raio Sup. Esq. (r_tl):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 140 }
+                        Slider {
+                            id: sliderRTL
+                            Layout.fillWidth: true
+                            from: 0.0
+                            to: 64.0
+                            value: 24.0
+                        }
+                        Text { text: Math.round(sliderRTL.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                    }
 
-                                Text {
-                                    text: "DIAGNÓSTICO SCREEN-SPACE [VK SPIR-V]"
-                                    color: "#94a3b8"
-                                    font.pixelSize: 9
-                                    font.bold: true
-                                    font.family: "JetBrains Mono, monospace"
-                                }
+                    // Slider Top-Right
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Raio Sup. Dir. (r_tr):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 140 }
+                        Slider {
+                            id: sliderRTR
+                            Layout.fillWidth: true
+                            from: 0.0
+                            to: 64.0
+                            value: 24.0
+                        }
+                        Text { text: Math.round(sliderRTR.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                    }
 
-                                Text {
-                                    text: "• Dimensões Ecrã: " + Math.round(rootWindow.width) + " × " + Math.round(rootWindow.height) + " px"
-                                    color: "#cbd5e1"
-                                    font.pixelSize: 10
-                                    font.family: "JetBrains Mono, monospace"
-                                }
+                    // Slider Bottom-Left
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Raio Inf. Esq. (r_bl):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 140 }
+                        Slider {
+                            id: sliderRBL
+                            Layout.fillWidth: true
+                            from: 0.0
+                            to: 64.0
+                            value: 24.0
+                        }
+                        Text { text: Math.round(sliderRBL.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                    }
 
-                                Text {
-                                    text: "• Menisco de Borda: 7.0 px (Restrito: Elimina Rubber Ring)"
-                                    color: "#00ffa3"
-                                    font.pixelSize: 10
-                                    font.family: "JetBrains Mono, monospace"
-                                }
+                    // Slider Bottom-Right
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Raio Inf. Dir. (r_br):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 140 }
+                        Slider {
+                            id: sliderRBR
+                            Layout.fillWidth: true
+                            from: 0.0
+                            to: 64.0
+                            value: 24.0
+                        }
+                        Text { text: Math.round(sliderRBR.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                    }
 
-                                Text {
-                                    text: "• Screen UV: gl_FragCoord.xy / u_ScreenResolution"
-                                    color: "#00e5ff"
-                                    font.pixelSize: 10
-                                    font.family: "JetBrains Mono, monospace"
-                                }
+                    // Slider Slant
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Inclinação (Slant/Domo):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 140 }
+                        Slider {
+                            id: sliderSlant
+                            Layout.fillWidth: true
+                            from: -0.8
+                            to: 0.8
+                            value: 0.0
+                        }
+                        Text { text: sliderSlant.value.toFixed(2); color: "#00ffa3"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                    }
 
-                                Text {
-                                    text: "• Cauchy Aberration: Δuv R/G/B com defasagem ativa"
-                                    color: "#ff007a"
-                                    font.pixelSize: 10
-                                    font.family: "JetBrains Mono, monospace"
-                                }
+                    Item { Layout.fillHeight: true }
 
-                                Text {
-                                    text: "• Posição Janela: (" + Math.round(glassWindow.x) + ", " + Math.round(glassWindow.y) + ") — Arraste para inspecionar"
-                                    color: "#ffbe0b"
-                                    font.pixelSize: 10
-                                    font.family: "JetBrains Mono, monospace"
-                                }
+                    Text {
+                        text: "✓ Recorte analítico G2 contínuo sem sub-janelas cortadas."
+                        color: "#94a3b8"
+                        font.pixelSize: 10
+                        font.italic: true
+                    }
+                }
+
+                // Divisor Vertical Transparente
+                Rectangle {
+                    Layout.fillHeight: true
+                    width: 1
+                    color: "#14ffffff"
+                }
+
+                // COLUNA 2: FÍSICA ÓPTICA & TELEMETRIA
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: 8
+
+                    Text {
+                        text: "◈ FÍSICA ÓPTICA VALO GLASS"
+                        color: "#00ffa3"
+                        font.bold: true
+                        font.pixelSize: 11
+                        font.family: "JetBrains Mono, monospace"
+                    }
+
+                    // Slider IOR
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Índice Refração (IOR):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 150 }
+                        Slider {
+                            id: sliderIOR
+                            Layout.fillWidth: true
+                            from: 1.00
+                            to: 1.50
+                            value: 1.20
+                        }
+                        Text { text: sliderIOR.value.toFixed(2); color: "#00ffa3"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                    }
+
+                    // Slider Dispersão Cromática
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Dispersão (Cauchy):"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 150 }
+                        Slider {
+                            id: sliderDispersion
+                            Layout.fillWidth: true
+                            from: 0.000
+                            to: 0.080
+                            value: 0.040
+                        }
+                        Text { text: sliderDispersion.value.toFixed(3); color: "#ff007a"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                    }
+
+                    // Slider Cáustica 45°
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Feixe Cáustico a 45°:"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 150 }
+                        Slider {
+                            id: sliderCaustic
+                            Layout.fillWidth: true
+                            from: 0.00
+                            to: 1.50
+                            value: 0.50
+                        }
+                        Text { text: sliderCaustic.value.toFixed(2); color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                    }
+
+                    // Slider Opacidade Base
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Pigmento Abissal:"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 150 }
+                        Slider {
+                            id: sliderOpacity
+                            Layout.fillWidth: true
+                            from: 0.00
+                            to: 1.00
+                            value: 0.40
+                        }
+                        Text { text: Math.round(sliderOpacity.value * 100) + "%"; color: "#f8fafc"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                    }
+
+                    // Caixa de Diagnóstico Transparente Unificada
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        color: "transparent"
+                        radius: 8
+                        border.color: "#2500ffa3"
+                        border.width: 1
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 4
+
+                            Text {
+                                text: "DIAGNÓSTICO ÓPTICO SCREEN-SPACE [VK SPIR-V]"
+                                color: "#94a3b8"
+                                font.pixelSize: 9
+                                font.bold: true
+                                font.family: "JetBrains Mono, monospace"
+                            }
+
+                            Text {
+                                text: "• Ecrã Físico: " + Math.round(rootWindow.width * rootWindow.devicePixelRatio) + " × " + Math.round(rootWindow.height * rootWindow.devicePixelRatio) + " px (DPR: " + rootWindow.devicePixelRatio.toFixed(2) + ")"
+                                color: "#cbd5e1"
+                                font.pixelSize: 10
+                                font.family: "JetBrains Mono, monospace"
+                            }
+
+                            Text {
+                                text: "• Prova de Fogo: Alfa = 1.0 (Refração Pura ativa)"
+                                color: "#00ffa3"
+                                font.pixelSize: 10
+                                font.family: "JetBrains Mono, monospace"
+                            }
+
+                            Text {
+                                text: "• Menisco de Borda: 7.0 px (Zero Rubber Ring)"
+                                color: "#00e5ff"
+                                font.pixelSize: 10
+                                font.family: "JetBrains Mono, monospace"
+                            }
+
+                            Text {
+                                text: "• Deflexão do Domo: Ativa e proporcional a (IOR - 1.0)"
+                                color: "#ff007a"
+                                font.pixelSize: 10
+                                font.family: "JetBrains Mono, monospace"
+                            }
+
+                            Text {
+                                text: "• Posição da Placa: (" + Math.round(glassChassis.x) + ", " + Math.round(glassChassis.y) + ") — Arraste para inspecionar"
+                                color: "#ffbe0b"
+                                font.pixelSize: 10
+                                font.family: "JetBrains Mono, monospace"
                             }
                         }
                     }
