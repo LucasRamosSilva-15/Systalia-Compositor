@@ -7,7 +7,6 @@ target_link_libraries(systalia_engine_shaders PRIVATE
 )
 
 qt6_add_shaders(systalia_engine_shaders "systalia_engine_shaders"
-    BATCHABLE
     PREFIX
         "/shaders"
     FILES

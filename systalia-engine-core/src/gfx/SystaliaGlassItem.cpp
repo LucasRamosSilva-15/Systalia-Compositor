@@ -6,12 +6,10 @@
 #include <QImage>
 
 SystaliaGlassItem::SystaliaGlassItem(QQuickItem *parent)
-{
-    fprintf(stderr, "[SGE-INFO] SystaliaGlassItem CONSTRUCTOR CALLED!\n");
     : QQuickItem(parent)
 {
+    fprintf(stderr, "[SGE-INFO] SystaliaGlassItem CONSTRUCTOR CALLED! this=%p\n", this);
     setFlag(ItemHasContents, true);
-qDebug() << "[SGE-DEBUG] SystaliaGlassItem constructor! this=" << this;
 }
 
 SystaliaGlassItem::~SystaliaGlassItem()
@@ -118,7 +116,7 @@ QSGNode *SystaliaGlassItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDat
 {
     Q_UNUSED(data);
     auto *node = static_cast<QSGGeometryNode *>(oldNode);
-qDebug() << "[SGE-DEBUG] updatePaintNode! width:" << width() << "height:" << height();
+    fprintf(stderr, "[SGE-INFO] updatePaintNode CALLED! w=%f, h=%f\n", width(), height());
 
     if (width() <= 0 || height() <= 0) {
         delete node;
@@ -143,7 +141,6 @@ qDebug() << "[SGE-DEBUG] updatePaintNode! width:" << width() << "height:" << hei
                                             QRectF(0, 0, 1, 1));
     node->markDirty(QSGNode::DirtyGeometry);
 
-    fprintf(stderr, "[SGE-INFO] updatePaintNode CALLED! w=%f, h=%f, tex=%p\n", width(), height(), tex);
     auto *material = static_cast<SystaliaGlassMaterial *>(node->material());
 
     // Configuração dos uniforms std140 (128 bytes)
@@ -199,6 +196,8 @@ qDebug() << "[SGE-DEBUG] updatePaintNode! width:" << width() << "height:" << hei
         tex->setHorizontalWrapMode(QSGTexture::ClampToEdge);
         tex->setVerticalWrapMode(QSGTexture::ClampToEdge);
     }
+
+    fprintf(stderr, "[SGE-INFO] updatePaintNode CALLED! w=%f, h=%f, tex=%p\n", width(), height(), tex);
 
     material->setTexture(tex);
     node->markDirty(QSGNode::DirtyMaterial);

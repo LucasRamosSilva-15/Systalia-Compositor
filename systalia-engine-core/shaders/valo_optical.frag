@@ -67,11 +67,11 @@ void main() {
     float dist = evaluateSurfaceSDF(p, halfSize, u_Radii, u_Slant);
 
     // 1. Anti-aliasing analítico subpixel com descarte estrito fora da geometria
-    float fw = max(fwidth(dist), 0.001);
-    float alphaMask = 1.0 - smoothstep(-fw * 0.5, fw * 0.5, dist);
-    if (alphaMask <= 0.0001) {
-        discard;
-    }
+    // float fw = max(fwidth(dist), 0.001);
+    // float alphaMask = 1.0 - smoothstep(-fw * 0.5, fw * 0.5, dist);
+    // if (alphaMask <= 0.0001) {
+    //     discard;
+    // }
 
     // 2. Normais analíticas subpixel e distância à borda interna
     vec2 norm = calculateNormal(p, halfSize, u_Radii, u_Slant);

@@ -12,6 +12,8 @@ int main(int argc, char *argv[])
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
     qputenv("QSG_RHI_BACKEND", "vulkan");
 
+    Q_INIT_RESOURCE(systalia_engine_shaders);
+
     QGuiApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("Systalia Glass Engine - Core"));
     app.setOrganizationName(QStringLiteral("Systalia Systems"));
