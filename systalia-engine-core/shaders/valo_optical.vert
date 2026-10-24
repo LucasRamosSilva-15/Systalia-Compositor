@@ -10,12 +10,15 @@ layout(std140, binding = 0) uniform buf {
     mat4 u_Matrix;
     vec4 u_Radii; // (top_left, top_right, bottom_left, bottom_right)
     vec2 u_WindowSize;
+    vec2 u_ScreenResolution;
     float u_Slant;
     float u_Ior;
     float u_ChromaticDispersion;
     float u_CausticIntensity;
     float u_Opacity;
-    float _pad;
+    float _pad0;
+    float _pad1;
+    float _pad2;
 };
 
 void main() {

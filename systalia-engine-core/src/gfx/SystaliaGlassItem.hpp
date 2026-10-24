@@ -19,7 +19,9 @@ class SystaliaGlassItem : public QQuickItem
     Q_PROPERTY(float chromaticDispersion READ chromaticDispersion WRITE setChromaticDispersion NOTIFY chromaticDispersionChanged)
     Q_PROPERTY(float causticIntensity READ causticIntensity WRITE setCausticIntensity NOTIFY causticIntensityChanged)
     Q_PROPERTY(float surfaceOpacity READ surfaceOpacity WRITE setSurfaceOpacity NOTIFY surfaceOpacityChanged)
-    Q_PROPERTY(QQuickItem* sourceItem READ sourceItem WRITE setSourceItem NOTIFY sourceItemChanged)
+    Q_PROPERTY(QQuickItem* backdropSource READ backdropSource WRITE setBackdropSource NOTIFY backdropSourceChanged)
+    Q_PROPERTY(QQuickItem* sourceItem READ backdropSource WRITE setBackdropSource NOTIFY backdropSourceChanged)
+    Q_PROPERTY(QVector2D screenResolution READ screenResolution WRITE setScreenResolution NOTIFY screenResolutionChanged)
     Q_PROPERTY(float radius READ uniformRadius WRITE setUniformRadius NOTIFY uniformRadiusChanged)
 
 public:
@@ -44,8 +46,11 @@ public:
     float surfaceOpacity() const { return m_surfaceOpacity; }
     void setSurfaceOpacity(float opacity);
 
-    QQuickItem *sourceItem() const { return m_sourceItem; }
-    void setSourceItem(QQuickItem *item);
+    QQuickItem *backdropSource() const { return m_backdropSource; }
+    void setBackdropSource(QQuickItem *item);
+
+    QVector2D screenResolution() const { return m_screenResolution; }
+    void setScreenResolution(const QVector2D &res);
 
     float uniformRadius() const { return m_radii.x(); }
     void setUniformRadius(float r);
@@ -57,7 +62,8 @@ signals:
     void chromaticDispersionChanged();
     void causticIntensityChanged();
     void surfaceOpacityChanged();
-    void sourceItemChanged();
+    void backdropSourceChanged();
+    void screenResolutionChanged();
     void uniformRadiusChanged();
 
 protected:
@@ -74,7 +80,8 @@ private:
     float m_causticIntensity = 0.65f;
     float m_surfaceOpacity = 1.0f;
 
-    QQuickItem *m_sourceItem = nullptr;
+    QQuickItem *m_backdropSource = nullptr;
+    QVector2D m_screenResolution{0.0f, 0.0f};
     QSGTextureProvider *m_connectedProvider = nullptr;
     QSGTexture *m_fallbackTexture = nullptr;
 };

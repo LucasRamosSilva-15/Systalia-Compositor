@@ -76,14 +76,29 @@ void SystaliaGlassItem::setSurfaceOpacity(float opacity)
     }
 }
 
-void SystaliaGlassItem::setSourceItem(QQuickItem *item)
+void SystaliaGlassItem::setBackdropSource(QQuickItem *item)
 {
-    if (m_sourceItem == item)
+    if (m_backdropSource == item)
         return;
 
-    m_sourceItem = item;
-    emit sourceItemChanged();
+    if (m_connectedProvider) {
+        disconnect(m_connectedProvider, &QSGTextureProvider::textureChanged,
+                   this, &QQuickItem::update);
+        m_connectedProvider = nullptr;
+    }
+
+    m_backdropSource = item;
+    emit backdropSourceChanged();
     update();
+}
+
+void SystaliaGlassItem::setScreenResolution(const QVector2D &res)
+{
+    if (m_screenResolution != res) {
+        m_screenResolution = res;
+        emit screenResolutionChanged();
+        update();
+    }
 }
 
 QSGTexture *SystaliaGlassItem::ensureFallbackTexture()
@@ -126,22 +141,37 @@ QSGNode *SystaliaGlassItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDat
 
     auto *material = static_cast<SystaliaGlassMaterial *>(node->material());
 
-    // Configuração dos uniforms std140
+    // Configuração dos uniforms std140 (128 bytes)
     SystaliaSurfaceProps props;
     props.radii = m_radii;
     props.windowSize = QVector2D(static_cast<float>(width()), static_cast<float>(height()));
+
+    // Resolução de ecrã para Screen-Space normalizado com suporte a High-DPI
+    QVector2D res = m_screenResolution;
+    if (res.x() <= 0.0f || res.y() <= 0.0f) {
+        if (window()) {
+            res = QVector2D(window()->width(), window()->height());
+        } else {
+            res = props.windowSize;
+        }
+    }
+    const float dpr = window() ? static_cast<float>(window()->devicePixelRatio()) : 1.0f;
+    props.screenResolution = QVector2D(res.x() * dpr, res.y() * dpr);
+
     props.slant = m_slant;
     props.ior = m_ior;
     props.chromaticDispersion = m_chromaticDispersion;
     props.causticIntensity = m_causticIntensity;
-    props.opacity = m_surfaceOpacity * static_cast<float>(opacity());
-    props.padding = 0.0f;
+    props.opacity = m_surfaceOpacity;
+    props.padding[0] = 0.0f;
+    props.padding[1] = 0.0f;
+    props.padding[2] = 0.0f;
     material->setProperties(props);
 
-    // Vinculação da textura a partir do QQuickItem/ShaderEffectSource
+    // Extração ativa da textura do backdropSource via textureProvider()
     QSGTexture *tex = nullptr;
-    if (m_sourceItem && m_sourceItem->isTextureProvider()) {
-        QSGTextureProvider *provider = m_sourceItem->textureProvider();
+    if (m_backdropSource && m_backdropSource->isTextureProvider()) {
+        QSGTextureProvider *provider = m_backdropSource->textureProvider();
         if (provider) {
             if (m_connectedProvider != provider) {
                 if (m_connectedProvider) {

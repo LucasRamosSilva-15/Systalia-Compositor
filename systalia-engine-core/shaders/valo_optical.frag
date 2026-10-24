@@ -9,12 +9,15 @@ layout(std140, binding = 0) uniform buf {
     mat4 u_Matrix;
     vec4 u_Radii; // (top_left, top_right, bottom_left, bottom_right)
     vec2 u_WindowSize;
+    vec2 u_ScreenResolution; // Resolução do ecrã para Screen-Space UV
     float u_Slant;
     float u_Ior; // Índice de refração (ex: 1.12)
     float u_ChromaticDispersion;
     float u_CausticIntensity;
     float u_Opacity;
-    float _pad;
+    float _pad0;
+    float _pad1;
+    float _pad2;
 };
 
 layout(binding = 1) uniform sampler2D u_BackdropTexture;
@@ -78,43 +81,52 @@ void main() {
     vec2 norm = calculateNormal(p, halfSize, u_Radii, u_Slant);
     float distFromEdge = max(-dist, 0.0);
 
-    // 3. Menisco de borda restrito (6.0px a 8.0px) para evitar "Borda de Borracha" (Rubber Ring Artifact)
-    const float MENISCUS_MAX = 7.0; // Espessura estrita do menisco óptico
+    // 3. Menisco de borda restrito (6.0px a 8.0px) para evitar "Borda de Borracha"
+    const float MENISCUS_MAX = 7.0;
     float meniscusFactor = clamp(1.0 - (distFromEdge / MENISCUS_MAX), 0.0, 1.0);
     float meniscusProfile = smoothstep(0.0, 1.0, meniscusFactor);
 
-    // Deslocamento de refração proporcional ao gradiente do menisco de borda
-    vec2 refrOffset = norm * (meniscusProfile * (u_Ior - 1.0) * 0.08);
+    // 4. Física Óptica: Refração do corpo da lente (domo) + menisco de borda
+    vec2 p_norm = p / max(halfSize, vec2(1.0));
+    vec2 bodyRefraction = p_norm * (u_Ior - 1.0) * 0.04;
+    vec2 meniscusRefraction = norm * (meniscusProfile * (u_Ior - 1.0) * 0.08);
+    vec2 refractionOffset = bodyRefraction + meniscusRefraction;
 
-    // 4. Separação espectral de Cauchy para aberração cromática (canais R, G e B)
-    vec2 uv = v_TexCoord;
-    vec2 uvR = clamp(uv + refrOffset * (1.0 - u_ChromaticDispersion), 0.001, 0.999);
-    vec2 uvG = clamp(uv + refrOffset, 0.001, 0.999);
-    vec2 uvB = clamp(uv + refrOffset * (1.0 + u_ChromaticDispersion), 0.001, 0.999);
+    // 5. Coordenadas Screen-Space normalizadas para amostragem do framebuffer de fundo
+    vec2 res = max(u_ScreenResolution, vec2(1.0));
+    vec2 screenUV = gl_FragCoord.xy / res;
 
-    float colR = texture(u_BackdropTexture, uvR).r;
-    float colG = texture(u_BackdropTexture, uvG).g;
-    float colB = texture(u_BackdropTexture, uvB).b;
+    // 6. Separação espectral de Cauchy para aberração cromática (canais R, G e B)
+    vec2 refrUV_R = clamp(screenUV + refractionOffset * (1.0 - u_ChromaticDispersion), 0.001, 0.999);
+    vec2 refrUV_G = clamp(screenUV + refractionOffset, 0.001, 0.999);
+    vec2 refrUV_B = clamp(screenUV + refractionOffset * (1.0 + u_ChromaticDispersion), 0.001, 0.999);
+
+    float colR = texture(u_BackdropTexture, refrUV_R).r;
+    float colG = texture(u_BackdropTexture, refrUV_G).g;
+    float colB = texture(u_BackdropTexture, refrUV_B).b;
     vec3 refractedBackdrop = vec3(colR, colG, colB);
 
-    // 5. Reflexo de borda (specular rim highlight) refinado de 1.0px a 1.2px
+    // 7. Reflexo de borda (specular rim highlight) refinado de 1.0px a 1.2px
     // Orientado estritamente para o zénite (topo da janela: -norm.y > 0.0)
     float zenith = max(-norm.y, 0.0);
     float rimLine = exp(-pow((distFromEdge - 0.6) / 0.45, 2.0)); // Perfil Gaussiano FWHM ~1.1px
     float specularRim = rimLine * zenith;
     vec3 rimSpecularColor = vec3(1.0) * (specularRim * 0.95) + vec3(0.0, 0.898, 1.0) * (specularRim * 0.25);
 
-    // 6. Feixe cáustico a 45°: Modulação diagonal de densidade luminosa suave
+    // 8. Feixe cáustico a 45°: Modulação diagonal de densidade luminosa suave
     float diagCoord = dot(v_TexCoord, vec2(0.707106, 0.707106));
     float causticBand = exp(-pow((diagCoord - 0.45) / 0.22, 2.0));
     vec3 causticTint = mix(vec3(0.0, 0.898, 1.0), vec3(1.0, 1.0, 1.0), 0.72);
     vec3 causticContribution = causticTint * (causticBand * u_CausticIntensity * 0.38);
 
-    // 7. Base abissal translúcida VALO Glass (rgba(12, 28, 48, 0.48))
+    // 9. Base abissal translúcida VALO Glass (rgba(12, 28, 48, 0.48))
     vec3 glassBase = vec3(0.047, 0.110, 0.188);
-    vec3 finalColor = mix(refractedBackdrop, glassBase, 0.22);
+    vec3 finalColor = mix(refractedBackdrop, glassBase, 0.22 * u_Opacity);
     finalColor += causticContribution;
     finalColor += rimSpecularColor;
 
-    fragColor = vec4(finalColor, alphaMask * u_Opacity);
+    // 10. Opacidade do item: No interior da superfície, o alpha é 1.0 (opacidade total),
+    // forçando o fundo a ser visualizado EXCLUSIVAMENTE através do refractedBackdrop.
+    // Nas bordas externas do squircle, o alphaMask realiza o anti-aliasing analítico subpixel.
+    fragColor = vec4(finalColor, alphaMask);
 }

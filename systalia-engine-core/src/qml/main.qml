@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import Systalia.Engine 1.0
 
 ApplicationWindow {
-    id: root
+    id: rootWindow
     width: 1440
     height: 900
     minimumWidth: 1024
@@ -144,8 +144,8 @@ ApplicationWindow {
             // Ticker de texto em movimento
             Row {
                 id: marqueeRow
-                x: -100 + (animTimer.tick * 80) % (root.width + 800) - 400
-                y: root.height - 80
+                x: -100 + (animTimer.tick * 80) % (rootWindow.width + 800) - 400
+                y: rootWindow.height - 80
                 spacing: 40
 
                 Repeater {
@@ -178,15 +178,14 @@ ApplicationWindow {
     }
 
     // =========================================================================
-    // 2. CAPTURA DO BACKDROP DIRETAMENTE SOB A JANELA DE VIDRO
+    // 2. CAPTURA ATIVA DO BACKDROP FRAMEBUFFER
     // =========================================================================
     ShaderEffectSource {
-        id: backdropSource
+        id: backdropGrab
         sourceItem: backgroundScene
-        sourceRect: Qt.rect(glassWindow.x, glassWindow.y, glassWindow.width, glassWindow.height)
-        recursive: false
         live: true
         hideSource: false
+        recursive: false
     }
 
     // =========================================================================
@@ -203,7 +202,8 @@ ApplicationWindow {
         SystaliaGlassItem {
             id: opticalSurface
             anchors.fill: parent
-            sourceItem: backdropSource
+            backdropSource: backdropGrab
+            screenResolution: Qt.vector2d(rootWindow.width, rootWindow.height)
 
             // Propriedades std140 sincronizadas com controlos
             radii: Qt.vector4d(sliderRTL.value, sliderRTR.value, sliderRBL.value, sliderRBR.value)
@@ -269,7 +269,7 @@ ApplicationWindow {
                             font.family: "Segoe UI, Inter, sans-serif"
                         }
                         Text {
-                            text: "Fase 1: Motor Óptico Analítico • Vulkan RHI Native • Subpixel G2"
+                            text: "Fase 1: Motor Óptico Analítico • Vulkan RHI Native • Screen-Space UV"
                             color: "#00e5ff"
                             font.pixelSize: 10
                             font.family: "JetBrains Mono, monospace"
@@ -572,7 +572,7 @@ ApplicationWindow {
                                 Layout.fillWidth: true
                                 from: 1.00
                                 to: 1.45
-                                value: 1.12
+                                value: 1.15
                             }
                             Text { text: sliderIOR.value.toFixed(2); color: "#00ffa3"; font.pixelSize: 11; Layout.preferredWidth: 38 }
                         }
@@ -585,8 +585,8 @@ ApplicationWindow {
                                 id: sliderDispersion
                                 Layout.fillWidth: true
                                 from: 0.000
-                                to: 0.060
-                                value: 0.025
+                                to: 0.080
+                                value: 0.035
                             }
                             Text { text: sliderDispersion.value.toFixed(3); color: "#ff007a"; font.pixelSize: 11; Layout.preferredWidth: 38 }
                         }
@@ -608,13 +608,13 @@ ApplicationWindow {
                         // Slider Opacidade
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: "Opacidade Global:"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 160 }
+                            Text { text: "Opacidade do Vidro:"; color: "#cbd5e1"; font.pixelSize: 11; Layout.preferredWidth: 160 }
                             Slider {
                                 id: sliderOpacity
                                 Layout.fillWidth: true
-                                from: 0.20
+                                from: 0.00
                                 to: 1.00
-                                value: 1.00
+                                value: 0.50
                             }
                             Text { text: Math.round(sliderOpacity.value * 100) + "%"; color: "#f8fafc"; font.pixelSize: 11; Layout.preferredWidth: 38 }
                         }
@@ -633,7 +633,7 @@ ApplicationWindow {
                                 spacing: 4
 
                                 Text {
-                                    text: "DIAGNÓSTICO EM TEMPO REAL [VK SPIR-V]"
+                                    text: "DIAGNÓSTICO SCREEN-SPACE [VK SPIR-V]"
                                     color: "#94a3b8"
                                     font.pixelSize: 9
                                     font.bold: true
@@ -641,7 +641,7 @@ ApplicationWindow {
                                 }
 
                                 Text {
-                                    text: "• Dimensões Janela: " + Math.round(glassWindow.width) + " × " + Math.round(glassWindow.height) + " px"
+                                    text: "• Dimensões Ecrã: " + Math.round(rootWindow.width) + " × " + Math.round(rootWindow.height) + " px"
                                     color: "#cbd5e1"
                                     font.pixelSize: 10
                                     font.family: "JetBrains Mono, monospace"
@@ -655,21 +655,21 @@ ApplicationWindow {
                                 }
 
                                 Text {
-                                    text: "• Specular Rim: 1.1 px (Zênite estrito -norm.y > 0.0)"
+                                    text: "• Screen UV: gl_FragCoord.xy / u_ScreenResolution"
                                     color: "#00e5ff"
                                     font.pixelSize: 10
                                     font.family: "JetBrains Mono, monospace"
                                 }
 
                                 Text {
-                                    text: "• Anti-Aliasing: Analítico subpixel com fwidth(dist)"
-                                    color: "#f8fafc"
+                                    text: "• Cauchy Aberration: Δuv R/G/B com defasagem ativa"
+                                    color: "#ff007a"
                                     font.pixelSize: 10
                                     font.family: "JetBrains Mono, monospace"
                                 }
 
                                 Text {
-                                    text: "• Posição: (" + Math.round(glassWindow.x) + ", " + Math.round(glassWindow.y) + ") — Arraste a barra para reposicionar"
+                                    text: "• Posição Janela: (" + Math.round(glassWindow.x) + ", " + Math.round(glassWindow.y) + ") — Arraste para inspecionar"
                                     color: "#ffbe0b"
                                     font.pixelSize: 10
                                     font.family: "JetBrains Mono, monospace"
