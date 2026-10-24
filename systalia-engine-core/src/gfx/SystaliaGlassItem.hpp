@@ -83,5 +83,6 @@ private:
     QQuickItem *m_backdropSource = nullptr;
     QVector2D m_screenResolution{0.0f, 0.0f};
     QSGTextureProvider *m_connectedProvider = nullptr;
+    QMetaObject::Connection m_providerConnection;
     QSGTexture *m_fallbackTexture = nullptr;
 };

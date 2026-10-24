@@ -133,6 +133,7 @@ ApplicationWindow {
                 Repeater {
                     model: 60
                     Rectangle {
+                        required property int index
                         width: 24
                         height: 24
                         color: (index % 2 === 0) ? "#00e5ff" : "#ff0055"
@@ -179,6 +180,8 @@ ApplicationWindow {
 
     // =========================================================================
     // 2. CAPTURA ATIVA DO BACKDROP FRAMEBUFFER (Com dimensões explícitas para Vulkan FBO)
+    // visible: false garante que este item atue estritamente como texture provider off-screen,
+    // sem renderizar um quad duplicado por cima da cena no display principal.
     // =========================================================================
     ShaderEffectSource {
         id: backdropGrab
@@ -188,6 +191,7 @@ ApplicationWindow {
                              Math.max(1, rootWindow.height * rootWindow.devicePixelRatio))
         live: true
         hideSource: false
+        visible: false
         recursive: false
         format: ShaderEffectSource.RGBA8
     }
@@ -195,24 +199,37 @@ ApplicationWindow {
     // =========================================================================
     // 3. CHASSIS UNIFICADO DE CRISTAL LÍQUIDO VALO GLASS
     // O próprio SystaliaGlassItem é o container centralizado da janela (uma única placa)
+    // Posicionamento aritmético livre (sem anchors rígidas) para habilitar DragHandler fluído.
     // =========================================================================
     SystaliaGlassItem {
         id: glassChassis
         width: 860
         height: 580
-        anchors.centerIn: parent
+        x: Math.round((rootWindow.width - glassChassis.width) / 2)
+        y: Math.round((rootWindow.height - glassChassis.height) / 2)
 
         backdropSource: backdropGrab
         screenResolution: Qt.vector2d(rootWindow.width * rootWindow.devicePixelRatio,
                                       rootWindow.height * rootWindow.devicePixelRatio)
 
-        // Sincronização dos parâmetros ópticos e de geometria G2
-        radii: Qt.vector4d(sliderRTL.value, sliderRTR.value, sliderRBL.value, sliderRBR.value)
-        slant: sliderSlant.value
-        ior: sliderIOR.value
-        chromaticDispersion: sliderDispersion.value
-        causticIntensity: sliderCaustic.value
-        surfaceOpacity: sliderOpacity.value
+        // Propriedades reativas do chassi com valores canônicos (evita referências prematuras a filhos)
+        property real rTL: 24.0
+        property real rTR: 24.0
+        property real rBL: 24.0
+        property real rBR: 24.0
+        property real optSlant: 0.0
+        property real optIOR: 1.20
+        property real optDispersion: 0.040
+        property real optCaustic: 0.50
+        property real optOpacity: 0.40
+
+        // Sincronização direta com a GPU
+        radii: Qt.vector4d(rTL, rTR, rBL, rBR)
+        slant: optSlant
+        ior: optIOR
+        chromaticDispersion: optDispersion
+        causticIntensity: optCaustic
+        surfaceOpacity: optOpacity
 
         // Arraste livre da janela pelo utilizador
         DragHandler {
@@ -237,8 +254,8 @@ ApplicationWindow {
 
                 // Ícone Óptico Systalia
                 Rectangle {
-                    width: 26
-                    height: 26
+                    Layout.preferredWidth: 26
+                    Layout.preferredHeight: 26
                     radius: 7
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: "#00e5ff" }
@@ -276,8 +293,8 @@ ApplicationWindow {
 
                 // Badges de Telemetria
                 Rectangle {
-                    height: 20
-                    width: 82
+                    Layout.preferredWidth: 82
+                    Layout.preferredHeight: 20
                     radius: 4
                     color: "#2000e5ff"
                     border.color: "#5000e5ff"
@@ -294,8 +311,8 @@ ApplicationWindow {
                 }
 
                 Rectangle {
-                    height: 20
-                    width: 60
+                    Layout.preferredWidth: 60
+                    Layout.preferredHeight: 20
                     radius: 4
                     color: "#2000ffa3"
                     border.color: "#5000ffa3"
@@ -323,7 +340,7 @@ ApplicationWindow {
             // Separador de vidro ultra-sutil
             Rectangle {
                 Layout.fillWidth: true
-                height: 1
+                Layout.preferredHeight: 1
                 color: "#18ffffff"
             }
 
@@ -353,70 +370,73 @@ ApplicationWindow {
                         spacing: 6
 
                         Button {
+                            id: btnSym24
                             Layout.fillWidth: true
                             text: "Simétrico 24"
                             contentItem: Text {
-                                text: parent.text
+                                text: btnSym24.text
                                 color: "#f8fafc"
                                 font.pixelSize: 10
                                 horizontalAlignment: Text.AlignHCenter
                             }
                             background: Rectangle {
-                                color: parent.hovered ? "#4000e5ff" : "#1400e5ff"
+                                color: btnSym24.hovered ? "#4000e5ff" : "#1400e5ff"
                                 radius: 5
                                 border.color: "#4000e5ff"
                             }
                             onClicked: {
-                                sliderRTL.value = 24;
-                                sliderRTR.value = 24;
-                                sliderRBL.value = 24;
-                                sliderRBR.value = 24;
-                                sliderSlant.value = 0.0;
+                                glassChassis.rTL = 24.0;
+                                glassChassis.rTR = 24.0;
+                                glassChassis.rBL = 24.0;
+                                glassChassis.rBR = 24.0;
+                                glassChassis.optSlant = 0.0;
                             }
                         }
 
                         Button {
+                            id: btnDome48
                             Layout.fillWidth: true
                             text: "Domo 48"
                             contentItem: Text {
-                                text: parent.text
+                                text: btnDome48.text
                                 color: "#f8fafc"
                                 font.pixelSize: 10
                                 horizontalAlignment: Text.AlignHCenter
                             }
                             background: Rectangle {
-                                color: parent.hovered ? "#4000ffa3" : "#1400ffa3"
+                                color: btnDome48.hovered ? "#4000ffa3" : "#1400ffa3"
                                 radius: 5
                                 border.color: "#4000ffa3"
                             }
                             onClicked: {
-                                sliderRTL.value = 48;
-                                sliderRTR.value = 48;
-                                sliderRBL.value = 12;
-                                sliderRBR.value = 12;
-                                sliderSlant.value = 0.35;
+                                glassChassis.rTL = 48.0;
+                                glassChassis.rTR = 48.0;
+                                glassChassis.rBL = 12.0;
+                                glassChassis.rBR = 12.0;
+                                glassChassis.optSlant = 0.35;
                             }
                         }
 
                         Button {
+                            id: btnAsym
                             Layout.fillWidth: true
                             text: "Assimétrico"
                             contentItem: Text {
-                                text: parent.text
+                                text: btnAsym.text
                                 color: "#f8fafc"
                                 font.pixelSize: 10
                                 horizontalAlignment: Text.AlignHCenter
                             }
                             background: Rectangle {
-                                color: parent.hovered ? "#40ff007a" : "#14ff007a"
+                                color: btnAsym.hovered ? "#40ff007a" : "#14ff007a"
                                 radius: 5
                                 border.color: "#40ff007a"
                             }
                             onClicked: {
-                                sliderRTL.value = 42;
-                                sliderRTR.value = 8;
-                                sliderRBL.value = 8;
-                                sliderRBR.value = 42;
+                                glassChassis.rTL = 42.0;
+                                glassChassis.rTR = 8.0;
+                                glassChassis.rBL = 8.0;
+                                glassChassis.rBR = 42.0;
                             }
                         }
                     }
@@ -430,9 +450,10 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             from: 0.0
                             to: 64.0
-                            value: 24.0
+                            value: glassChassis.rTL
+                            onMoved: glassChassis.rTL = value
                         }
-                        Text { text: Math.round(sliderRTL.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                        Text { text: Math.round(glassChassis.rTL) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
                     }
 
                     // Slider Top-Right
@@ -444,9 +465,10 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             from: 0.0
                             to: 64.0
-                            value: 24.0
+                            value: glassChassis.rTR
+                            onMoved: glassChassis.rTR = value
                         }
-                        Text { text: Math.round(sliderRTR.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                        Text { text: Math.round(glassChassis.rTR) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
                     }
 
                     // Slider Bottom-Left
@@ -458,9 +480,10 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             from: 0.0
                             to: 64.0
-                            value: 24.0
+                            value: glassChassis.rBL
+                            onMoved: glassChassis.rBL = value
                         }
-                        Text { text: Math.round(sliderRBL.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                        Text { text: Math.round(glassChassis.rBL) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
                     }
 
                     // Slider Bottom-Right
@@ -472,9 +495,10 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             from: 0.0
                             to: 64.0
-                            value: 24.0
+                            value: glassChassis.rBR
+                            onMoved: glassChassis.rBR = value
                         }
-                        Text { text: Math.round(sliderRBR.value) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                        Text { text: Math.round(glassChassis.rBR) + "px"; color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
                     }
 
                     // Slider Slant
@@ -486,9 +510,10 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             from: -0.8
                             to: 0.8
-                            value: 0.0
+                            value: glassChassis.optSlant
+                            onMoved: glassChassis.optSlant = value
                         }
-                        Text { text: sliderSlant.value.toFixed(2); color: "#00ffa3"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                        Text { text: glassChassis.optSlant.toFixed(2); color: "#00ffa3"; font.pixelSize: 11; Layout.preferredWidth: 36 }
                     }
 
                     Item { Layout.fillHeight: true }
@@ -504,7 +529,7 @@ ApplicationWindow {
                 // Divisor Vertical Transparente
                 Rectangle {
                     Layout.fillHeight: true
-                    width: 1
+                    Layout.preferredWidth: 1
                     color: "#14ffffff"
                 }
 
@@ -531,9 +556,10 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             from: 1.00
                             to: 1.50
-                            value: 1.20
+                            value: glassChassis.optIOR
+                            onMoved: glassChassis.optIOR = value
                         }
-                        Text { text: sliderIOR.value.toFixed(2); color: "#00ffa3"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                        Text { text: glassChassis.optIOR.toFixed(2); color: "#00ffa3"; font.pixelSize: 11; Layout.preferredWidth: 36 }
                     }
 
                     // Slider Dispersão Cromática
@@ -545,9 +571,10 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             from: 0.000
                             to: 0.080
-                            value: 0.040
+                            value: glassChassis.optDispersion
+                            onMoved: glassChassis.optDispersion = value
                         }
-                        Text { text: sliderDispersion.value.toFixed(3); color: "#ff007a"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                        Text { text: glassChassis.optDispersion.toFixed(3); color: "#ff007a"; font.pixelSize: 11; Layout.preferredWidth: 36 }
                     }
 
                     // Slider Cáustica 45°
@@ -559,9 +586,10 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             from: 0.00
                             to: 1.50
-                            value: 0.50
+                            value: glassChassis.optCaustic
+                            onMoved: glassChassis.optCaustic = value
                         }
-                        Text { text: sliderCaustic.value.toFixed(2); color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                        Text { text: glassChassis.optCaustic.toFixed(2); color: "#00e5ff"; font.pixelSize: 11; Layout.preferredWidth: 36 }
                     }
 
                     // Slider Opacidade Base
@@ -573,9 +601,10 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             from: 0.00
                             to: 1.00
-                            value: 0.40
+                            value: glassChassis.optOpacity
+                            onMoved: glassChassis.optOpacity = value
                         }
-                        Text { text: Math.round(sliderOpacity.value * 100) + "%"; color: "#f8fafc"; font.pixelSize: 11; Layout.preferredWidth: 36 }
+                        Text { text: Math.round(glassChassis.optOpacity * 100) + "%"; color: "#f8fafc"; font.pixelSize: 11; Layout.preferredWidth: 36 }
                     }
 
                     // Caixa de Diagnóstico Transparente Unificada

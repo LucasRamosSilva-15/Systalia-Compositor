@@ -175,13 +175,14 @@ QSGNode *SystaliaGlassItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDat
         QSGTextureProvider *provider = m_backdropSource->textureProvider();
         if (provider) {
             if (m_connectedProvider != provider) {
-                if (m_connectedProvider) {
-                    disconnect(m_connectedProvider, &QSGTextureProvider::textureChanged,
-                               this, &QQuickItem::update);
+                if (m_providerConnection) {
+                    QObject::disconnect(m_providerConnection);
                 }
                 m_connectedProvider = provider;
-                connect(m_connectedProvider, &QSGTextureProvider::textureChanged,
-                        this, &QQuickItem::update, Qt::UniqueConnection);
+                if (m_connectedProvider) {
+                    m_providerConnection = connect(m_connectedProvider, &QSGTextureProvider::textureChanged,
+                                                   this, &QQuickItem::update);
+                }
             }
             tex = provider->texture();
         }
@@ -197,8 +198,6 @@ QSGNode *SystaliaGlassItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDat
         tex->setVerticalWrapMode(QSGTexture::ClampToEdge);
     }
 
-    fprintf(stderr, "[SGE-INFO] updatePaintNode CALLED! w=%f, h=%f, tex=%p\n", width(), height(), tex);
-
     material->setTexture(tex);
     node->markDirty(QSGNode::DirtyMaterial);
 
@@ -207,11 +206,10 @@ QSGNode *SystaliaGlassItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeDat
 
 void SystaliaGlassItem::releaseResources()
 {
-    if (m_connectedProvider) {
-        disconnect(m_connectedProvider, &QSGTextureProvider::textureChanged,
-                   this, &QQuickItem::update);
-        m_connectedProvider = nullptr;
+    if (m_providerConnection) {
+        QObject::disconnect(m_providerConnection);
     }
+    m_connectedProvider = nullptr;
     delete m_fallbackTexture;
     m_fallbackTexture = nullptr;
 }
