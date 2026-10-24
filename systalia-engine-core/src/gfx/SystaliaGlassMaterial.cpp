@@ -91,14 +91,19 @@ bool SystaliaGlassMaterialShader::updateGraphicsPipelineState(RenderState &state
     ps->blendEnable = true;
     ps->srcColor = GraphicsPipelineState::SrcAlpha;
     ps->dstColor = GraphicsPipelineState::OneMinusSrcAlpha;
-    fprintf(stderr, "[SGE-DEBUG] updateGraphicsPipelineState CALLED!\n");
+    ps->srcAlpha = GraphicsPipelineState::One;
+    ps->dstAlpha = GraphicsPipelineState::OneMinusSrcAlpha;
+    ps->colorWrite = GraphicsPipelineState::R | GraphicsPipelineState::G | GraphicsPipelineState::B | GraphicsPipelineState::A;
+    ps->cullMode = GraphicsPipelineState::CullNone;
+    ps->polygonMode = GraphicsPipelineState::Fill;
     return true;
 }
 
 SystaliaGlassMaterial::SystaliaGlassMaterial()
 {
     setFlag(Blending, true);
-    setFlag(RequiresFullMatrixExceptTranslate, true);
+    setFlag(RequiresFullMatrix, true);
+    setFlag(NoBatching, true);
 }
 
 QSGMaterialType *SystaliaGlassMaterial::type() const

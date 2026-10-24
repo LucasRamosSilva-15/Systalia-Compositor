@@ -6,9 +6,9 @@
 
 #include "gfx/SystaliaSurfaceProps.hpp"
 
-// Protótipo para registro de recursos RCC embutidos no binário de testes
-inline void initTestShadersResource() {
-    Q_INIT_RESOURCE(tst_engine_shaders);
+// Protótipo para registro de recursos RCC embutidos na biblioteca systalia_engine_core
+inline void initEngineResources() {
+    Q_INIT_RESOURCE(systalia_engine_shaders);
 }
 
 class tst_SystaliaEngine : public QObject {
@@ -46,13 +46,15 @@ private:
 
 private slots:
     void initTestCase() {
-        initTestShadersResource();
+        initEngineResources();
     }
 
     void testStd140MemoryLayout() {
+        // Validação estrita std140 de 128 bytes e alinhamento de 16 bytes
         QCOMPARE(sizeof(SystaliaSurfaceProps), 128ULL);
         QCOMPARE(sizeof(SystaliaSurfaceProps) % 16, 0ULL);
 
+        // Validação exata dos offsets de cada campo no UniformBlock
         QCOMPARE(offsetof(SystaliaSurfaceProps, matrix), 0ULL);
         QCOMPARE(offsetof(SystaliaSurfaceProps, radii), 64ULL);
         QCOMPARE(offsetof(SystaliaSurfaceProps, windowSize), 80ULL);
@@ -79,21 +81,21 @@ private slots:
         // Ponto central (0, 0) deve ser profundamente interno
         float distCenter = evaluateSurfaceSDF({0.0f, 0.0f}, halfSize, radii, slant);
         QVERIFY(distCenter < 0.0f);
-        QCOMPARE(distCenter, -290.0f); // Distância até a borda vertical mais próxima (-halfSize.y)
+        QCOMPARE(distCenter, -290.0f);
 
-        // Ponto interno próximo à margem
+        // Ponto interno
         float distInner = evaluateSurfaceSDF({200.0f, 150.0f}, halfSize, radii, slant);
         QVERIFY(distInner < 0.0f);
 
-        // Ponto claramente fora dos limites horizontais
+        // Ponto externo no eixo X
         float distOutsideX = evaluateSurfaceSDF({450.0f, 0.0f}, halfSize, radii, slant);
         QVERIFY(distOutsideX > 0.0f);
 
-        // Ponto claramente fora dos limites verticais
+        // Ponto externo no eixo Y
         float distOutsideY = evaluateSurfaceSDF({0.0f, 310.0f}, halfSize, radii, slant);
         QVERIFY(distOutsideY > 0.0f);
 
-        // Ponto na quina chanfrada além da superelipse
+        // Ponto na quina além do raio
         float distCornerOutside = evaluateSurfaceSDF({428.0f, 288.0f}, halfSize, radii, slant);
         QVERIFY(distCornerOutside > 0.0f);
     }

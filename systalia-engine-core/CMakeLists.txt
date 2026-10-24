@@ -23,8 +23,8 @@ find_package(Qt6 6.7 REQUIRED COMPONENTS
 
 find_package(Vulkan REQUIRED)
 
-qt_add_executable(systalia_engine_core
-    src/main.cpp
+# Biblioteca estática central com o motor, shaders e registro QML
+qt_add_library(systalia_engine_core STATIC
     src/gfx/SystaliaSurfaceProps.hpp
     src/gfx/SystaliaGlassMaterial.hpp
     src/gfx/SystaliaGlassMaterial.cpp
@@ -32,12 +32,12 @@ qt_add_executable(systalia_engine_core
     src/gfx/SystaliaGlassItem.cpp
 )
 
-target_include_directories(systalia_engine_core PRIVATE
+target_include_directories(systalia_engine_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/gfx
 )
 
-target_link_libraries(systalia_engine_core PRIVATE
+target_link_libraries(systalia_engine_core PUBLIC
     Qt6::Core
     Qt6::Gui
     Qt6::Quick
@@ -47,7 +47,6 @@ target_link_libraries(systalia_engine_core PRIVATE
 )
 
 qt6_add_shaders(systalia_engine_core "systalia_engine_shaders"
-    BATCHABLE
     PREFIX
         "/shaders"
     BASE
@@ -64,6 +63,15 @@ qt_add_qml_module(systalia_engine_core
     QML_FILES
         src/qml/main.qml
     NO_PLUGIN
+)
+
+# Alvo executável principal
+qt_add_executable(systalia_engine_app
+    src/main.cpp
+)
+set_target_properties(systalia_engine_app PROPERTIES OUTPUT_NAME "systalia_engine_core")
+target_link_libraries(systalia_engine_app PRIVATE
+    systalia_engine_core
 )
 
 enable_testing()
