@@ -178,11 +178,14 @@ ApplicationWindow {
     }
 
     // =========================================================================
-    // 2. CAPTURA ATIVA DO BACKDROP FRAMEBUFFER
+    // 2. CAPTURA ATIVA DO BACKDROP FRAMEBUFFER (Com dimensões explícitas para Vulkan FBO)
     // =========================================================================
     ShaderEffectSource {
         id: backdropGrab
+        anchors.fill: backgroundScene
         sourceItem: backgroundScene
+        textureSize: Qt.size(Math.max(1, rootWindow.width * rootWindow.devicePixelRatio),
+                             Math.max(1, rootWindow.height * rootWindow.devicePixelRatio))
         live: true
         hideSource: false
         recursive: false

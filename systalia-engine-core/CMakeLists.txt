@@ -21,11 +21,7 @@ find_package(Qt6 6.7 REQUIRED COMPONENTS
     ShaderTools
 )
 
-qt_policy(SET QTP0004 NEW)
-
 find_package(Vulkan REQUIRED)
-
-add_subdirectory(shaders)
 
 qt_add_executable(systalia_engine_core
     src/main.cpp
@@ -48,7 +44,17 @@ target_link_libraries(systalia_engine_core PRIVATE
     Qt6::QuickControls2
     Qt6::ShaderTools
     Vulkan::Vulkan
-    systalia_engine_shaders
+)
+
+qt6_add_shaders(systalia_engine_core "systalia_engine_shaders"
+    BATCHABLE
+    PREFIX
+        "/shaders"
+    BASE
+        "shaders"
+    FILES
+        shaders/valo_optical.vert
+        shaders/valo_optical.frag
 )
 
 qt_add_qml_module(systalia_engine_core

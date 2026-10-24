@@ -1,48 +1,45 @@
+#include "gfx/SystaliaGlassItem.hpp"
+#include <QDebug>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QQuickWindow>
 #include <QQuickStyle>
+#include <QQuickWindow>
 #include <QSGRendererInterface>
-#include <QDebug>
-#include "gfx/SystaliaGlassItem.hpp"
 
-int main(int argc, char *argv[])
-{
-    // Forçar o backend Vulkan via Qt RHI conforme especificado
-    QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
-    qputenv("QSG_RHI_BACKEND", "vulkan");
+int main(int argc, char *argv[]) {
+  QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
+  qputenv("QSG_RHI_BACKEND", "vulkan");
 
-    Q_INIT_RESOURCE(systalia_engine_shaders);
+  QGuiApplication app(argc, argv);
+  app.setApplicationName(QStringLiteral("Systalia Glass Engine - Core"));
+  app.setOrganizationName(QStringLiteral("Systalia Systems"));
+  app.setOrganizationDomain(QStringLiteral("systalia.systems"));
 
-    QGuiApplication app(argc, argv);
-    app.setApplicationName(QStringLiteral("Systalia Glass Engine - Core"));
-    app.setOrganizationName(QStringLiteral("Systalia Systems"));
-    app.setOrganizationDomain(QStringLiteral("systalia.systems"));
+  QQuickStyle::setStyle(QStringLiteral("Basic"));
 
-    QQuickStyle::setStyle(QStringLiteral("Basic"));
+  qmlRegisterType<SystaliaGlassItem>("Systalia.Engine", 1, 0,
+                                     "SystaliaGlassItem");
 
-    // Registo do componente de vidro analítico na engine QML
-    qmlRegisterType<SystaliaGlassItem>("Systalia.Engine", 1, 0, "SystaliaGlassItem");
+  QQmlApplicationEngine engine;
 
-    QQmlApplicationEngine engine;
+  const QUrl primaryUrl(
+      QStringLiteral("qrc:/qt/qml/Systalia/Engine/src/qml/main.qml"));
+  const QUrl fallbackUrl(QStringLiteral("qrc:/src/qml/main.qml"));
 
-    // Conexão de verificação de criação de objetos raiz
-    const QUrl primaryUrl(QStringLiteral("qrc:/qt/qml/Systalia/Engine/src/qml/main.qml"));
-    const QUrl fallbackUrl(QStringLiteral("qrc:/src/qml/main.qml"));
+  QObject::connect(
+      &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
+      []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
 
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
-                     &app, []() { QCoreApplication::exit(-1); },
-                     Qt::QueuedConnection);
+  engine.load(primaryUrl);
+  if (engine.rootObjects().isEmpty()) {
+    engine.load(fallbackUrl);
+  }
 
-    engine.load(primaryUrl);
-    if (engine.rootObjects().isEmpty()) {
-        engine.load(fallbackUrl);
-    }
+  if (engine.rootObjects().isEmpty()) {
+    qCritical()
+        << "Falha crítica ao carregar interface QML do Systalia Glass Engine!";
+    return -1;
+  }
 
-    if (engine.rootObjects().isEmpty()) {
-        qCritical() << "Falha crítica ao carregar interface QML do Systalia Glass Engine!";
-        return -1;
-    }
-
-    return app.exec();
+  return app.exec();
 }
